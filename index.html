@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Linux Simulator</title>
+<style>
+:root{--ubuntu:#e95420;--purple:#300a24;--panel:#1f1f1f;--dock:rgba(25,25,25,.88)}
+*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden;font-family:Ubuntu,Arial,sans-serif}
+body{background:radial-gradient(circle at 70% 20%,#772953,#3d1538 48%,#250019);color:white}
+.top{height:32px;background:rgba(20,20,20,.96);display:flex;align-items:center;justify-content:space-between;padding:0 13px;font-size:14px;position:relative;z-index:9999}
+.desktop{height:calc(100% - 32px);position:relative}
+.dock{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:60px;padding:7px 6px;background:var(--dock);border-radius:14px;display:flex;flex-direction:column;gap:8px;z-index:9000}
+.dock button{width:48px;height:48px;border:0;border-radius:10px;background:rgba(255,255,255,.08);font-size:26px;cursor:pointer}.dock button:hover{background:rgba(255,255,255,.2)}
+.desktop-icon{position:absolute;right:25px;top:25px;width:90px;text-align:center;cursor:pointer}.desktop-icon span{font-size:45px;display:block}
+.window{position:absolute;background:#f6f6f6;color:#222;border-radius:10px;box-shadow:0 20px 55px rgba(0,0,0,.55);overflow:hidden;display:none;min-width:320px;min-height:220px}
+.titlebar{height:38px;background:#353535;color:white;display:flex;align-items:center;justify-content:space-between;padding:0 10px;cursor:move;user-select:none}
+.controls button{border:0;border-radius:50%;width:27px;height:27px;margin-left:5px;cursor:pointer;color:white;background:#666}.controls .x{background:var(--ubuntu)}
+.content{height:calc(100% - 38px)}
+#terminalWin{left:115px;top:55px;width:740px;height:480px}
+#terminal{height:100%;background:var(--purple);padding:13px;color:#eee;font:15px/1.45 Menlo,Consolas,monospace;overflow:auto;white-space:pre-wrap}
+.termrow{display:flex}.prompt{color:#8ae234;white-space:pre}.cmd{flex:1;background:transparent;color:white;border:0;outline:0;font:inherit}
+#filesWin{left:180px;top:90px;width:720px;height:470px}
+.toolbar{height:51px;padding:8px;background:#ececec;border-bottom:1px solid #ccc;display:flex;gap:8px}
+.toolbar input{flex:1;padding:7px;border:1px solid #bbb;border-radius:6px}
+.small{padding:7px 12px;border:1px solid #aaa;background:white;border-radius:6px;cursor:pointer}
+#fileGrid{height:calc(100% - 51px);overflow:auto;padding:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));align-content:start;gap:12px}
+.file{padding:12px;text-align:center;border-radius:8px;cursor:pointer}.file:hover{background:#e9e9e9}.file span{font-size:40px;display:block}
+#editorWin{left:230px;top:115px;width:680px;height:460px}
+#editorArea{width:100%;height:calc(100% - 51px);resize:none;border:0;outline:0;padding:14px;font:15px/1.5 Menlo,monospace}
+#settingsWin{left:300px;top:145px;width:430px;height:340px}.settings{padding:22px}.settings label{display:block;margin:14px 0}.settings input{padding:6px}
+.about{color:#666;font-size:13px}
+</style>
+</head>
+<body>
+<div class="top"><b>Activities &nbsp; Linux Simulator</b><div>🔊 &nbsp; 🌐 &nbsp; <span id="clock"></span></div></div>
+<div class="desktop">
+  <div class="dock">
+    <button title="Files" onclick="openWin('filesWin')">📁</button>
+    <button title="Terminal" onclick="openWin('terminalWin')">⌨️</button>
+    <button title="Text Editor" onclick="openEditor('/home/student/Documents/notes.txt')">📝</button>
+    <button title="Settings" onclick="openWin('settingsWin')">⚙️</button>
+  </div>
+  <div class="desktop-icon" ondblclick="openWin('filesWin')"><span>🏠</span>Home</div>
+
+  <div class="window" id="terminalWin">
+    <div class="titlebar"><b>Terminal</b><div class="controls"><button onclick="closeWin('terminalWin')">—</button><button class="x" onclick="closeWin('terminalWin')">×</button></div></div>
+    <div class="content"><div id="terminal"></div></div>
+  </div>
+
+  <div class="window" id="filesWin">
+    <div class="titlebar"><b>Files</b><div class="controls"><button onclick="closeWin('filesWin')">—</button><button class="x" onclick="closeWin('filesWin')">×</button></div></div>
+    <div class="content">
+      <div class="toolbar"><button class="small" onclick="goUp()">⬆ Up</button><input id="filesPath" value="/home/student"><button class="small" onclick="renderFiles(filesPath.value)">Go</button></div>
+      <div id="fileGrid"></div>
+    </div>
+  </div>
+
+  <div class="window" id="editorWin">
+    <div class="titlebar"><b>Text Editor</b><div class="controls"><button onclick="closeWin('editorWin')">—</button><button class="x" onclick="closeWin('editorWin')">×</button></div></div>
+    <div class="content">
+      <div class="toolbar"><input id="editorPath"><button class="small" onclick="saveEditor()">Save</button></div>
+      <textarea id="editorArea"></textarea>
+    </div>
+  </div>
+
+  <div class="window" id="settingsWin">
+    <div class="titlebar"><b>Settings</b><div class="controls"><button class="x" onclick="closeWin('settingsWin')">×</button></div></div>
+    <div class="content settings">
+      <h3>System</h3>
+      <label>Username <input id="userSet"></label>
+      <label>Hostname <input id="hostSet"></label>
+      <button class="small" onclick="saveSettings()">Save</button>
+      <button class="small" onclick="resetSim()">Reset simulator</button>
+      <p class="about">Browser-based Linux simulation. Files are saved locally in this browser.</p>
+    </div>
+  </div>
+</div>
+<script>
+const KEY='linux-simulator-v01';
+const defaults=()=>({username:'student',hostname:'linuxsim',cwd:'/home/student',fs:{
+'/':{type:'dir'},'/home':{type:'dir'},'/home/student':{type:'dir'},'/home/student/Desktop':{type:'dir'},
+'/home/student/Documents':{type:'dir'},'/home/student/Downloads':{type:'dir'},'/home/student/Pictures':{type:'dir'},
+'/etc':{type:'dir'},'/tmp':{type:'dir'},'/var':{type:'dir'},'/var/log':{type:'dir'},
+'/etc/issue':{type:'file',content:'Linux Simulator 1.0\n',mode:'644'},
+'/etc/hostname':{type:'file',content:'linuxsim\n',mode:'644'},
+'/home/student/Documents/notes.txt':{type:'file',content:'Welcome to Linux Simulator!\nTry the terminal and Files app.\n',mode:'644'}
+}});
+let S;try{S=JSON.parse(localStorage.getItem(KEY))||defaults()}catch(e){S=defaults()}
+const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
+function norm(p){if(!p||p==='~')return '/home/'+S.username;if(p.startsWith('~/'))p='/home/'+S.username+'/'+p.slice(2);if(!p.startsWith('/'))p=S.cwd+'/'+p;let a=[];for(let x of p.split('/')){if(!x||x==='.')continue;if(x==='..')a.pop();else a.push(x)}return '/'+a.join('/')}
+function parent(p){p=norm(p);return p==='/'?'/':p.substring(0,p.lastIndexOf('/'))||'/'}
+function base(p){p=norm(p);return p==='/'?'/':p.substring(p.lastIndexOf('/')+1)}
+function kids(p){p=norm(p);return Object.keys(S.fs).filter(x=>x!==p&&parent(x)===p).sort()}
+function isdir(p){return S.fs[norm(p)]?.type==='dir'}
+function openWin(id){let w=document.getElementById(id);w.style.display='block';bring(w);if(id==='filesWin')renderFiles(S.cwd)}
+function closeWin(id){document.getElementById(id).style.display='none'}
+let z=100;
+function bring(w){w.style.zIndex=++z}
+document.querySelectorAll('.window').forEach(w=>{let b=w.querySelector('.titlebar'),drag=false,sx=0,sy=0,ox=0,oy=0;b.onmousedown=e=>{if(e.target.tagName==='BUTTON')return;drag=true;sx=e.clientX;sy=e.clientY;ox=w.offsetLeft;oy=w.offsetTop;bring(w)};addEventListener('mousemove',e=>{if(drag){w.style.left=Math.max(65,ox+e.clientX-sx)+'px';w.style.top=Math.max(0,oy+e.clientY-sy)+'px'}});addEventListener('mouseup',()=>drag=false);w.onmousedown=()=>bring(w)});
+function ptext(){let h='/home/'+S.username,v=S.cwd===h?'~':S.cwd.startsWith(h+'/')?'~'+S.cwd.slice(h.length):S.cwd;return S.username+'@'+S.hostname+':'+v+'$ '}
+function line(s=''){let d=document.createElement('div');d.textContent=s;terminal.appendChild(d);terminal.scrollTop=terminal.scrollHeight}
+function input(){let r=document.createElement('div');r.className='termrow';let p=document.createElement('span');p.className='prompt';p.textContent=ptext();let i=document.createElement('input');i.className='cmd';r.append(p,i);terminal.appendChild(r);i.focus();i.onkeydown=e=>{if(e.key==='Enter'){let raw=i.value;i.remove();r.append(document.createTextNode(raw));run(raw);input()}else if(e.ctrlKey&&e.key.toLowerCase()==='l'){terminal.innerHTML='';input()}}}
+function args(raw){return raw.match(/"[^"]*"|'[^']*'|\S+/g)?.map(x=>x.replace(/^['"]|['"]$/g,''))||[]}
+function output(x){String(x).split('\n').forEach(line)}
+function run(raw){let a=args(raw),c=a.shift();if(!c)return;let target=x=>norm(x||'');
+if(c==='help')output('Available commands:\nls  cd  pwd  mkdir  touch  cat  echo  cp  mv  rm  rmdir\nclear  whoami  hostname  uname  date  chmod  head  tail  grep  find');
+else if(c==='pwd')output(S.cwd);
+else if(c==='whoami')output(S.username);
+else if(c==='hostname')output(S.hostname);
+else if(c==='uname')output(a.includes('-a')?'Linux '+S.hostname+' 6.8.0-browser #1 SMP x86_64 GNU/Linux':'Linux');
+else if(c==='date')output(new Date().toString());
+else if(c==='clear')terminal.innerHTML='';
+else if(c==='cd'){let p=target(a[0]||'~');if(isdir(p)){S.cwd=p;save()}else output('bash: cd: '+(a[0]||'')+': No such file or directory')}
+else if(c==='ls'){let flags=a.filter(x=>x.startsWith('-')).join(''),v=a.find(x=>!x.startsWith('-')),p=target(v||S.cwd);if(!S.fs[p])output("ls: cannot access '"+(v||p)+"': No such file or directory");else if(S.fs[p].type==='file')output(base(p));else kids(p).forEach(x=>{let f=S.fs[x];if(flags.includes('l')){let perm=f.type==='dir'?'drwxr-xr-x':(f.mode==='600'?'-rw-------':'-rw-r--r--');output(perm+' 1 '+S.username+' '+S.username+' '+(f.content?.length||0)+' '+base(x))}else output(base(x)+(f.type==='dir'?'/':''))})}
+else if(c==='mkdir'){a.filter(x=>!x.startsWith('-')).forEach(x=>{let p=target(x);if(S.fs[p])output('mkdir: cannot create directory: File exists');else if(!isdir(parent(p)))output('mkdir: cannot create directory: No such file or directory');else S.fs[p]={type:'dir'}});save()}
+else if(c==='touch'){a.forEach(x=>{let p=target(x);if(!S.fs[p]&&isdir(parent(p)))S.fs[p]={type:'file',content:'',mode:'644'}});save()}
+else if(c==='cat'){a.forEach(x=>{let p=target(x);if(S.fs[p]?.type==='file')output(S.fs[p].content.replace(/\n$/,''));else output('cat: '+x+': No such file or directory')})}
+else if(c==='echo'){let m=raw.match(/^echo\s+(.+?)\s*(>>|>)\s*(\S+)\s*$/);if(m){let val=m[1].replace(/^['"]|['"]$/g,''),p=target(m[3]);if(!S.fs[p])S.fs[p]={type:'file',content:'',mode:'644'};S.fs[p].content=m[2]==='>>'?(S.fs[p].content||'')+val+'\n':val+'\n';save()}else output(a.join(' '))}
+else if(c==='chmod'){let p=target(a[1]);if(S.fs[p]){S.fs[p].mode=a[0];save()}else output('chmod: cannot access: No such file')}
+else if(c==='rm'){a.filter(x=>!x.startsWith('-')).forEach(x=>{let p=target(x);if(S.fs[p]?.type==='file')delete S.fs[p];else if(a.includes('-r')&&isdir(p)){Object.keys(S.fs).filter(k=>k===p||k.startsWith(p+'/')).forEach(k=>delete S.fs[k])}else output('rm: cannot remove '+x)});save()}
+else if(c==='rmdir'){a.forEach(x=>{let p=target(x);if(isdir(p)&&kids(p).length===0)delete S.fs[p];else output('rmdir: failed to remove '+x)});save()}
+else if(c==='cp'||c==='mv'){let src=target(a[0]),dst=target(a[1]);if(!S.fs[src])output(c+': cannot stat: No such file');else{if(isdir(dst))dst=dst+'/'+base(src);S.fs[dst]=JSON.parse(JSON.stringify(S.fs[src]));if(c==='mv')delete S.fs[src];save()}}
+else if(c==='head'||c==='tail'){let p=target(a[0]);if(S.fs[p]?.type==='file'){let q=S.fs[p].content.split('\n');output((c==='head'?q.slice(0,10):q.slice(-11)).join('\n'))}else output(c+': cannot open file')}
+else if(c==='grep'){let q=a[0],p=target(a[1]);if(S.fs[p]?.type==='file')S.fs[p].content.split('\n').filter(x=>x.includes(q)).forEach(output);else output('grep: file not found')}
+else if(c==='find'){let start=target(a[0]||'.'),name=a[1]==='-name'?a[2]:null;Object.keys(S.fs).filter(p=>p===start||p.startsWith(start+'/')).filter(p=>!name||base(p).includes(name.replaceAll('*',''))).forEach(output)}
+else output(c+': command not found');
+renderFiles(filesPath.value||S.cwd)}
+function renderFiles(p){p=norm(p);if(!isdir(p))return;filesPath.value=p;fileGrid.innerHTML='';kids(p).forEach(x=>{let f=S.fs[x],d=document.createElement('div');d.className='file';d.innerHTML='<span>'+(f.type==='dir'?'📁':'📄')+'</span>'+base(x);d.ondblclick=()=>f.type==='dir'?renderFiles(x):openEditor(x);fileGrid.appendChild(d)})}
+function goUp(){renderFiles(parent(filesPath.value))}
+function openEditor(p){p=norm(p);if(!S.fs[p])S.fs[p]={type:'file',content:'',mode:'644'};editorPath.value=p;editorArea.value=S.fs[p].content||'';openWin('editorWin')}
+function saveEditor(){let p=norm(editorPath.value);S.fs[p]={type:'file',content:editorArea.value,mode:S.fs[p]?.mode||'644'};save();renderFiles(parent(p))}
+function saveSettings(){S.username=userSet.value||'student';S.hostname=hostSet.value||'linuxsim';save();alert('Settings saved')}
+function resetSim(){if(confirm('Delete simulated files and reset?')){localStorage.removeItem(KEY);location.reload()}}
+setInterval(()=>clock.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),1000);
+userSet.value=S.username;hostSet.value=S.hostname;
+line('Welcome to Linux Simulator');line("Type 'help' to see available commands.");line();input();renderFiles('/home/student');openWin('terminalWin');
+</script>
+</body>
+</html>
