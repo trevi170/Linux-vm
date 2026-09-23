@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Linux Simulator</title>
+<title>STC Linux Simulator</title>
 <style>
 :root{--ubuntu:#e95420;--purple:#300a24;--panel:#1f1f1f;--dock:rgba(25,25,25,.88)}
 *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden;font-family:Ubuntu,Arial,sans-serif}
@@ -31,10 +31,30 @@ body{background:radial-gradient(circle at 70% 20%,#772953,#3d1538 48%,#250019);c
 #settingsWin{left:300px;top:145px;width:430px;height:340px}.settings{padding:22px}.settings label{display:block;margin:14px 0}.settings input{padding:6px}
 .about{color:#666;font-size:13px}
 </style>
+
+<style>
+.wallpaper-brand{position:absolute;right:28px;bottom:22px;text-align:right;opacity:.72;user-select:none}
+.wallpaper-brand strong{font-size:24px}.wallpaper-brand div{font-size:12px;margin-top:3px}
+#startMenu{display:none;position:absolute;left:78px;top:12px;width:290px;background:rgba(30,30,30,.97);
+color:#fff;border-radius:12px;padding:14px;z-index:9500;box-shadow:0 18px 45px rgba(0,0,0,.45)}
+#startMenu h3{margin:3px 5px 12px}.appTile{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;cursor:pointer}
+.appTile:hover{background:rgba(255,255,255,.12)}.appTile b{display:block}.appTile small{color:#bbb}
+.badge{position:absolute;left:82px;bottom:18px;background:rgba(0,0,0,.48);padding:8px 12px;border-radius:8px;font-size:12px}
+</style>
+
 </head>
 <body>
-<div class="top"><b>Activities &nbsp; Linux Simulator</b><div>🔊 &nbsp; 🌐 &nbsp; <span id="clock"></span></div></div>
+<div class="top"><b style="cursor:pointer" onclick="toggleMenu()">Activities &nbsp; STC Linux Simulator</b><div>🔊 &nbsp; 🌐 &nbsp; <span id="clock"></span></div></div>
 <div class="desktop">
+  <div id="startMenu">
+    <h3>Applications</h3>
+    <div class="appTile" onclick="openWin('terminalWin');toggleMenu()"><span>⌨️</span><div><b>Terminal</b><small>Practice Linux commands</small></div></div>
+    <div class="appTile" onclick="openWin('filesWin');toggleMenu()"><span>📁</span><div><b>Files</b><small>Browse the virtual filesystem</small></div></div>
+    <div class="appTile" onclick="openEditor('/home/student/Documents/notes.txt');toggleMenu()"><span>📝</span><div><b>Text Editor</b><small>Edit simulated files</small></div></div>
+    <div class="appTile" onclick="openWin('settingsWin');toggleMenu()"><span>⚙️</span><div><b>Settings</b><small>Username, hostname and reset</small></div></div>
+  </div>
+  <div class="wallpaper-brand"><strong>STC Linux Lab</strong><div>Browser-based learning environment</div></div>
+  <div class="badge">Tip: type <b>help</b> in Terminal</div>
   <div class="dock">
     <button title="Files" onclick="openWin('filesWin')">📁</button>
     <button title="Terminal" onclick="openWin('terminalWin')">⌨️</button>
@@ -72,7 +92,7 @@ body{background:radial-gradient(circle at 70% 20%,#772953,#3d1538 48%,#250019);c
       <label>Hostname <input id="hostSet"></label>
       <button class="small" onclick="saveSettings()">Save</button>
       <button class="small" onclick="resetSim()">Reset simulator</button>
-      <p class="about">Browser-based Linux simulation. Files are saved locally in this browser.</p>
+      <p class="about">Educational Linux simulation. Files are saved locally in this browser.</p>
     </div>
   </div>
 </div>
@@ -82,9 +102,9 @@ const defaults=()=>({username:'student',hostname:'linuxsim',cwd:'/home/student',
 '/':{type:'dir'},'/home':{type:'dir'},'/home/student':{type:'dir'},'/home/student/Desktop':{type:'dir'},
 '/home/student/Documents':{type:'dir'},'/home/student/Downloads':{type:'dir'},'/home/student/Pictures':{type:'dir'},
 '/etc':{type:'dir'},'/tmp':{type:'dir'},'/var':{type:'dir'},'/var/log':{type:'dir'},
-'/etc/issue':{type:'file',content:'Linux Simulator 1.0\n',mode:'644'},
+'/etc/issue':{type:'file',content:'STC Linux Simulator 0.2\n',mode:'644'},
 '/etc/hostname':{type:'file',content:'linuxsim\n',mode:'644'},
-'/home/student/Documents/notes.txt':{type:'file',content:'Welcome to Linux Simulator!\nTry the terminal and Files app.\n',mode:'644'}
+'/home/student/Documents/notes.txt':{type:'file',content:'Welcome to STC Linux Simulator v0.2!\nTry the terminal and Files app.\n',mode:'644'}
 }});
 let S;try{S=JSON.parse(localStorage.getItem(KEY))||defaults()}catch(e){S=defaults()}
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
@@ -93,6 +113,7 @@ function parent(p){p=norm(p);return p==='/'?'/':p.substring(0,p.lastIndexOf('/')
 function base(p){p=norm(p);return p==='/'?'/':p.substring(p.lastIndexOf('/')+1)}
 function kids(p){p=norm(p);return Object.keys(S.fs).filter(x=>x!==p&&parent(x)===p).sort()}
 function isdir(p){return S.fs[norm(p)]?.type==='dir'}
+function toggleMenu(){let m=document.getElementById('startMenu');m.style.display=m.style.display==='block'?'none':'block'}
 function openWin(id){let w=document.getElementById(id);w.style.display='block';bring(w);if(id==='filesWin')renderFiles(S.cwd)}
 function closeWin(id){document.getElementById(id).style.display='none'}
 let z=100;
@@ -104,7 +125,7 @@ function input(){let r=document.createElement('div');r.className='termrow';let p
 function args(raw){return raw.match(/"[^"]*"|'[^']*'|\S+/g)?.map(x=>x.replace(/^['"]|['"]$/g,''))||[]}
 function output(x){String(x).split('\n').forEach(line)}
 function run(raw){let a=args(raw),c=a.shift();if(!c)return;let target=x=>norm(x||'');
-if(c==='help')output('Available commands:\nls  cd  pwd  mkdir  touch  cat  echo  cp  mv  rm  rmdir\nclear  whoami  hostname  uname  date  chmod  head  tail  grep  find');
+if(c==='help')output('Available commands:\nls  cd  pwd  mkdir  touch  cat  echo  cp  mv  rm  rmdir\nclear  whoami  hostname  uname  date  chmod  head  tail  grep  find  man  id  groups  sudo');
 else if(c==='pwd')output(S.cwd);
 else if(c==='whoami')output(S.username);
 else if(c==='hostname')output(S.hostname);
@@ -124,6 +145,21 @@ else if(c==='cp'||c==='mv'){let src=target(a[0]),dst=target(a[1]);if(!S.fs[src])
 else if(c==='head'||c==='tail'){let p=target(a[0]);if(S.fs[p]?.type==='file'){let q=S.fs[p].content.split('\n');output((c==='head'?q.slice(0,10):q.slice(-11)).join('\n'))}else output(c+': cannot open file')}
 else if(c==='grep'){let q=a[0],p=target(a[1]);if(S.fs[p]?.type==='file')S.fs[p].content.split('\n').filter(x=>x.includes(q)).forEach(output);else output('grep: file not found')}
 else if(c==='find'){let start=target(a[0]||'.'),name=a[1]==='-name'?a[2]:null;Object.keys(S.fs).filter(p=>p===start||p.startsWith(start+'/')).filter(p=>!name||base(p).includes(name.replaceAll('*',''))).forEach(output)}
+else if(c==='man'){let q=a[0]||'';let docs={
+'ls':'ls - list directory contents. Try: ls -l',
+'cd':'cd - change directory. Try: cd Documents',
+'pwd':'pwd - print current working directory',
+'cat':'cat - display a text file',
+'mkdir':'mkdir - create a directory',
+'touch':'touch - create an empty file',
+'chmod':'chmod - change simulated file permissions',
+'grep':'grep - search text in a file',
+'find':'find - search the simulated filesystem'
+};output(docs[q]||('No manual entry for '+q))}
+else if(c==='id')output('uid=1000('+S.username+') gid=1000('+S.username+') groups=1000('+S.username+'),27(sudo)');
+else if(c==='groups')output(S.username+' sudo');
+else if(c==='history')output('History is available during the current terminal session in a future update.');
+else if(c==='sudo')output('[sudo] This educational simulator does not execute privileged system commands.');
 else output(c+': command not found');
 renderFiles(filesPath.value||S.cwd)}
 function renderFiles(p){p=norm(p);if(!isdir(p))return;filesPath.value=p;fileGrid.innerHTML='';kids(p).forEach(x=>{let f=S.fs[x],d=document.createElement('div');d.className='file';d.innerHTML='<span>'+(f.type==='dir'?'📁':'📄')+'</span>'+base(x);d.ondblclick=()=>f.type==='dir'?renderFiles(x):openEditor(x);fileGrid.appendChild(d)})}
@@ -134,7 +170,7 @@ function saveSettings(){S.username=userSet.value||'student';S.hostname=hostSet.v
 function resetSim(){if(confirm('Delete simulated files and reset?')){localStorage.removeItem(KEY);location.reload()}}
 setInterval(()=>clock.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),1000);
 userSet.value=S.username;hostSet.value=S.hostname;
-line('Welcome to Linux Simulator');line("Type 'help' to see available commands.");line();input();renderFiles('/home/student');openWin('terminalWin');
+line('Welcome to STC Linux Simulator v0.2');line("Type 'help' to see available commands.");line();input();renderFiles('/home/student');openWin('terminalWin');
 </script>
 </body>
 </html>
